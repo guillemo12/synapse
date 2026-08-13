@@ -25,6 +25,7 @@ import argparse
 import curses
 import logging
 import os
+import re
 import sys
 import time
 import traceback
@@ -379,6 +380,8 @@ class Porter:
                     table, forward_chunk, backward_chunk
                 )
         else:
+            if not re.match(r"^[a-zA-Z0-9_]+$", table):
+                raise ValueError("Invalid table name: %s" % (table,))
 
             def delete_all(txn: LoggingTransaction) -> None:
                 txn.execute(
@@ -937,15 +940,24 @@ class Porter:
             tables = set(sqlite_tables) & set(postgres_tables)
             logger.info("Found %d tables", len(tables))
 
+            valid_tables = []
+            for table in tables:
+                if table in [
+                    "schema_version",
+                    "applied_schema_deltas",
+                ] or table.startswith("sqlite_"):
+                    continue
+                if not re.match(r"^[a-zA-Z0-9_]+$", table):
+                    raise ValueError("Invalid table name from schema: %s" % (table,))
+                valid_tables.append(table)
+
             # Step 4. Figure out what still needs copying
             self.progress.set_state("Checking on port progress")
             setup_res = await make_deferred_yieldable(
                 defer.gatherResults(
                     [
                         run_in_background(self.setup_table, table)
-                        for table in tables
-                        if table not in ["schema_version", "applied_schema_deltas"]
-                        and not table.startswith("sqlite_")
+                        for table in valid_tables
                     ],
                     consumeErrors=True,
                 )

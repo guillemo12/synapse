@@ -23,7 +23,7 @@ import abc
 import logging
 import os
 import shutil
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, BinaryIO, Callable
 
 from synapse.config._base import Config
 from synapse.logging.context import defer_to_thread, run_in_background
@@ -176,11 +176,18 @@ class FileStorageProviderBackend(StorageProvider):
         """See StorageProvider.fetch"""
 
         backup_fname = os.path.join(self.base_directory, path)
-        if os.path.isfile(backup_fname):
+
+        def check_and_open() -> BinaryIO | None:
+            if os.path.isfile(backup_fname):
+                return open(backup_fname, "rb")
+            return None
+
+        file = await defer_to_thread(self.reactor, check_and_open)
+        if file:
             # Import here to avoid circular import
             from .media_storage import FileResponder
 
-            return FileResponder(self.hs, open(backup_fname, "rb"))
+            return FileResponder(self.hs, file)
 
         return None
 

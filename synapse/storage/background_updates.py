@@ -258,15 +258,7 @@ class BackgroundUpdater:
 
         self._background_update_performance: dict[str, BackgroundUpdatePerformance] = {}
         self._background_update_handlers: dict[str, _BackgroundUpdateHandler] = {}
-        # TODO: all these bool flags make me feel icky---can we combine into a status
-        # enum?
-        self._all_done = False
-
-        # Whether we're currently running updates
-        self._running = False
-
-        # Marker to be set if we abort and halt all background updates.
-        self._aborted = False
+        self._status = UpdaterStatus.NOT_STARTED
 
         # Whether background updates are enabled. This allows us to
         # enable/disable background updates via the admin API.
@@ -289,17 +281,13 @@ class BackgroundUpdater:
 
     def get_status(self) -> UpdaterStatus:
         """An integer summarising the updater status. Used as a metric."""
-        if self._aborted:
+        if self._status == UpdaterStatus.ABORTED:
             return UpdaterStatus.ABORTED
         # TODO: a status for "have seen at least one failure, but haven't aborted yet".
         if not self.enabled:
             return UpdaterStatus.DISABLED
 
-        if self._all_done:
-            return UpdaterStatus.COMPLETE
-        if self._running:
-            return UpdaterStatus.RUNNING_UPDATE
-        return UpdaterStatus.NOT_STARTED
+        return self._status
 
     def register_update_controller_callbacks(
         self,
@@ -396,7 +384,8 @@ class BackgroundUpdater:
     def start_doing_background_updates(self) -> None:
         if self.enabled:
             # if we start a new background update, not all updates are done.
-            self._all_done = False
+            if self._status == UpdaterStatus.COMPLETE:
+                self._status = UpdaterStatus.NOT_STARTED
             sleep = self.sleep_enabled
             self.hs.run_as_background_process(
                 "background_updates",
@@ -405,10 +394,10 @@ class BackgroundUpdater:
             )
 
     async def run_background_updates(self, sleep: bool) -> None:
-        if self._running or not self.enabled:
+        if self._status == UpdaterStatus.RUNNING_UPDATE or not self.enabled:
             return
 
-        self._running = True
+        self._status = UpdaterStatus.RUNNING_UPDATE
 
         back_to_back_failures = 0
 
@@ -425,7 +414,7 @@ class BackgroundUpdater:
                     logger.exception("Error doing update: %s", e)
                     back_to_back_failures += 1
                     if back_to_back_failures >= 5:
-                        self._aborted = True
+                        self._status = UpdaterStatus.ABORTED
                         raise RuntimeError(
                             "5 back-to-back background update failures; aborting."
                         )
@@ -435,10 +424,11 @@ class BackgroundUpdater:
                             "No more background updates to do."
                             " Unscheduling background update task."
                         )
-                        self._all_done = True
+                        self._status = UpdaterStatus.COMPLETE
                         return None
         finally:
-            self._running = False
+            if self._status == UpdaterStatus.RUNNING_UPDATE:
+                self._status = UpdaterStatus.NOT_STARTED
 
     async def has_completed_background_updates(self) -> bool:
         """Check if all the background updates have completed
@@ -448,7 +438,7 @@ class BackgroundUpdater:
         """
         # if we've previously determined that there is nothing left to do, that
         # is easy
-        if self._all_done:
+        if self._status == UpdaterStatus.COMPLETE:
             return True
 
         # obviously, if we are currently processing an update, we're not done.
@@ -465,14 +455,14 @@ class BackgroundUpdater:
             desc="has_completed_background_updates",
         )
         if not updates:
-            self._all_done = True
+            self._status = UpdaterStatus.COMPLETE
             return True
 
         return False
 
     async def has_completed_background_update(self, update_name: str) -> bool:
         """Check if the given background update has finished running."""
-        if self._all_done:
+        if self._status == UpdaterStatus.COMPLETE:
             return True
 
         if update_name == self._current_background_update:
@@ -493,11 +483,11 @@ class BackgroundUpdater:
     ) -> bool:
         """Return the name of background updates that have not yet been
         completed"""
-        if self._all_done:
+        if self._status == UpdaterStatus.COMPLETE:
             return True
 
         # We now check if we have completed all pending background updates. We
-        # do this as once this returns True then it will set `self._all_done`
+        # do this as once this returns True then it will set `self._status`
         # and we can skip checking the database in future.
         if await self.has_completed_background_updates():
             return True

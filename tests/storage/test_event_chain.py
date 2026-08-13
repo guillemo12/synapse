@@ -1,3 +1,4 @@
+from synapse.storage.background_updates import UpdaterStatus
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -667,7 +668,7 @@ class EventChainBackgroundUpdateTestCase(HomeserverTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.wait_for_background_updates()
 
@@ -703,7 +704,7 @@ class EventChainBackgroundUpdateTestCase(HomeserverTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.wait_for_background_updates()
 
@@ -747,7 +748,7 @@ class EventChainBackgroundUpdateTestCase(HomeserverTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         iterations = 0
         while not self.get_success(
@@ -806,7 +807,7 @@ class EventChainBackgroundUpdateTestCase(HomeserverTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         iterations = 0
         while not self.get_success(

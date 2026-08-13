@@ -1,3 +1,4 @@
+from synapse.storage.background_updates import UpdaterStatus
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -58,7 +59,8 @@ class CleanupExtremBackgroundUpdateStoreTestCase(HomeserverTestCase):
         """Re run the background update to clean up the extremities."""
         # Make sure we don't clash with in progress updates.
         self.assertTrue(
-            self.store.db_pool.updates._all_done, "Background updates are still ongoing"
+            self.store.db_pool.updates._status == UpdaterStatus.COMPLETE,
+            "Background updates are still ongoing",
         )
 
         schema_path = os.path.join(
@@ -79,7 +81,7 @@ class CleanupExtremBackgroundUpdateStoreTestCase(HomeserverTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.wait_for_background_updates()
 

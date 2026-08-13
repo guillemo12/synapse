@@ -1,3 +1,4 @@
+from synapse.storage.background_updates import UpdaterStatus
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -52,7 +53,7 @@ class StatsRoomTests(unittest.HomeserverTestCase):
         Add the background updates we need to run.
         """
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.get_success(
             self.store.db_pool.simple_insert(
@@ -529,7 +530,7 @@ class StatsRoomTests(unittest.HomeserverTestCase):
 
         # preparation stage of the initial background update
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.get_success(
             self.store.db_pool.simple_delete(
@@ -549,7 +550,7 @@ class StatsRoomTests(unittest.HomeserverTestCase):
 
         # now do the background updates
 
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.get_success(
             self.store.db_pool.simple_insert(
                 "background_updates",

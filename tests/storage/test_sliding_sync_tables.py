@@ -1,3 +1,5 @@
+from synapse.storage.background_updates import UpdaterStatus
+
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -3453,7 +3455,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -3607,7 +3609,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -3804,7 +3806,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -4022,7 +4024,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -4256,7 +4258,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -4517,7 +4519,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -4671,7 +4673,7 @@ class SlidingSyncTablesBackgroundUpdatesTestCase(SlidingSyncTablesTestCaseBase):
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated
@@ -4800,7 +4802,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -4893,7 +4895,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -4973,7 +4975,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -5076,7 +5078,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -5214,7 +5216,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -5309,7 +5311,7 @@ class SlidingSyncTablesCatchUpBackgroundUpdatesTestCase(SlidingSyncTablesTestCas
         )
 
         # Wait for the catch-up background update to finish
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Ensure that the table is populated correctly after the catch-up background
@@ -5385,7 +5387,7 @@ class SlidingSyncMembershipSnapshotsTableFixForgottenColumnBackgroundUpdatesTest
                 },
             )
         )
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # Make sure the table is populated

@@ -1,3 +1,4 @@
+from synapse.storage.background_updates import UpdaterStatus
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -761,7 +762,7 @@ class RelationsTestCase(BaseRelationsTestCase):
         )
 
         # Ugh, have to reset this flag
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
         self.wait_for_background_updates()
 
         # The "good" annotation and the thread should be found, but not the "bad"

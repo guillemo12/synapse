@@ -1,3 +1,4 @@
+from synapse.storage.background_updates import UpdaterStatus
 #
 # This file is licensed under the Affero General Public License (AGPL) version 3.
 #
@@ -108,7 +109,7 @@ class ReceiptsBackgroundUpdateStoreTestCase(HomeserverTestCase):
             )
         )
 
-        self.store.db_pool.updates._all_done = False
+        self.store.db_pool.updates._status = UpdaterStatus.NOT_STARTED
 
         self.wait_for_background_updates()
 

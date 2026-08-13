@@ -588,9 +588,9 @@ class RoomSyncConfigTestCase(TestCase):
         (True,),
         (False,),
     ],
-    class_name_func=lambda cls,
-    num,
-    params_dict: f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}",
+    class_name_func=lambda cls, num, params_dict: (
+        f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}"
+    ),
 )
 class ComputeInterestedRoomsTestCase(SlidingSyncBase):
     """
@@ -2974,9 +2974,9 @@ class ComputeInterestedRoomsTestCase(SlidingSyncBase):
         (True,),
         (False,),
     ],
-    class_name_func=lambda cls,
-    num,
-    params_dict: f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}",
+    class_name_func=lambda cls, num, params_dict: (
+        f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}"
+    ),
 )
 class ComputeInterestedRoomsShardTestCase(
     BaseMultiWorkerStreamTestCase, SlidingSyncBase

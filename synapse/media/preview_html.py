@@ -337,9 +337,7 @@ def parse_html_to_open_graph(tree: "etree._Element") -> dict[str, str | None]:
             )
             images = sorted(
                 images,
-                key=lambda i: (
-                    -1 * float(i.attrib["width"]) * float(i.attrib["height"])
-                ),
+                key=lambda i: -1 * float(i.attrib["width"]) * float(i.attrib["height"]),
             )
             # If no images were found, try to find *any* images.
             if not images:

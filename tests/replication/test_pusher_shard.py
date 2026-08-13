@@ -93,8 +93,8 @@ class PusherShardTestCase(BaseMultiWorkerStreamTestCase):
     def test_send_push_single_worker(self) -> None:
         """Test that registration works when using a pusher worker."""
         http_client_mock = Mock(spec_set=["post_json_get_json"])
-        http_client_mock.post_json_get_json.side_effect = (
-            lambda *_, **__: defer.succeed({})
+        http_client_mock.post_json_get_json.side_effect = lambda *_, **__: (
+            defer.succeed({})
         )
 
         self.make_worker_hs(
@@ -123,8 +123,8 @@ class PusherShardTestCase(BaseMultiWorkerStreamTestCase):
     def test_send_push_multiple_workers(self) -> None:
         """Test that registration works when using sharded pusher workers."""
         http_client_mock1 = Mock(spec_set=["post_json_get_json"])
-        http_client_mock1.post_json_get_json.side_effect = (
-            lambda *_, **__: defer.succeed({})
+        http_client_mock1.post_json_get_json.side_effect = lambda *_, **__: (
+            defer.succeed({})
         )
 
         self.make_worker_hs(
@@ -137,8 +137,8 @@ class PusherShardTestCase(BaseMultiWorkerStreamTestCase):
         )
 
         http_client_mock2 = Mock(spec_set=["post_json_get_json"])
-        http_client_mock2.post_json_get_json.side_effect = (
-            lambda *_, **__: defer.succeed({})
+        http_client_mock2.post_json_get_json.side_effect = lambda *_, **__: (
+            defer.succeed({})
         )
 
         self.make_worker_hs(

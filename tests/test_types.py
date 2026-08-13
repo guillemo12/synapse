@@ -37,6 +37,7 @@ from synapse.types import (
     UserID,
     get_domain_from_id,
     get_localpart_from_id,
+    is_compliant_user_id_localpart,
     map_username_to_mxid_localpart,
 )
 
@@ -148,9 +149,9 @@ class MapUsernameTestCase(unittest.TestCase):
         (MultiWriterStreamToken,),
         (RoomStreamToken,),
     ],
-    class_name_func=lambda cls,
-    num,
-    params_dict: f"{cls.__name__}_{params_dict['token_type'].__name__}",
+    class_name_func=lambda cls, num, params_dict: (
+        f"{cls.__name__}_{params_dict['token_type'].__name__}"
+    ),
 )
 class MultiWriterTokenTestCase(unittest.HomeserverTestCase):
     """Tests for the different types of multi writer tokens."""
@@ -350,3 +351,28 @@ class NonNegativeStrictIntTestCase(unittest.TestCase):
 
         self.assertEqual(MyModel.model_validate_json('{"limit": 0}'), MyModel(limit=0))
         self.assertEqual(MyModel.model_validate({"limit": 42}), MyModel(limit=42))
+
+
+class IsCompliantUserIdLocalpartTestCase(unittest.TestCase):
+    def test_empty_string(self) -> None:
+        self.assertFalse(is_compliant_user_id_localpart(""))
+
+    def test_valid_characters(self) -> None:
+        # alphanumeric
+        self.assertTrue(is_compliant_user_id_localpart("alice"))
+        self.assertTrue(is_compliant_user_id_localpart("Alice123"))
+
+        # symbols between 0x21 and 0x7E
+        self.assertTrue(is_compliant_user_id_localpart("!@#$"))
+        self.assertTrue(is_compliant_user_id_localpart("bob.jones"))
+        self.assertTrue(is_compliant_user_id_localpart("=+-[]{}"))
+
+    def test_invalid_characters(self) -> None:
+        # non-ascii / outside range
+        self.assertFalse(is_compliant_user_id_localpart("álice"))
+        self.assertFalse(is_compliant_user_id_localpart("alice 123"))  # space is 0x20
+        self.assertFalse(is_compliant_user_id_localpart("bob\n"))  # newline is 0x0A
+        self.assertFalse(
+            is_compliant_user_id_localpart("test\x00")
+        )  # null byte is 0x00
+        self.assertFalse(is_compliant_user_id_localpart("~alice\x7f"))  # 0x7F is DEL

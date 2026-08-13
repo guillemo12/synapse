@@ -55,9 +55,9 @@ class MembershipAction(str, enum.Enum):
         (True,),
         (False,),
     ],
-    class_name_func=lambda cls,
-    num,
-    params_dict: f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}",
+    class_name_func=lambda cls, num, params_dict: (
+        f"{cls.__name__}_{'new' if params_dict['use_new_tables'] else 'fallback'}"
+    ),
 )
 class SlidingSyncRoomsRequiredStateTestCase(SlidingSyncBase):
     """

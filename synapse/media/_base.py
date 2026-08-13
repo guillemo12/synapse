@@ -47,6 +47,7 @@ from synapse.http.server import finish_request, respond_with_json
 from synapse.http.site import SynapseRequest
 from synapse.logging.context import (
     PreserveLoggingContext,
+    defer_to_thread,
     defer_to_threadpool,
     make_deferred_yieldable,
     run_in_background,
@@ -139,15 +140,18 @@ async def respond_with_file(
 ) -> None:
     logger.debug("Responding with %r", file_path)
 
-    if os.path.isfile(file_path):
+    if await defer_to_thread(hs.get_reactor(), os.path.isfile, file_path):
         if file_size is None:
-            stat = os.stat(file_path)
+            stat = await defer_to_thread(hs.get_reactor(), os.stat, file_path)
             file_size = stat.st_size
 
         add_file_headers(request, media_type, file_size, upload_name)
 
-        with open(file_path, "rb") as f:
+        f = await defer_to_thread(hs.get_reactor(), open, file_path, "rb")
+        try:
             await ThreadedFileSender(hs).beginFileTransfer(f, request)
+        finally:
+            f.close()
 
         finish_request(request)
     else:

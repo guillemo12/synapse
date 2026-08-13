@@ -1,0 +1,1 @@
+Optimize blocking I/O calls (`os.path.isfile`, `os.stat` and `open`) in `synapse.media._base.respond_with_file` to use `defer_to_thread`.

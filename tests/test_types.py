@@ -35,6 +35,7 @@ from synapse.types import (
     RoomAlias,
     RoomStreamToken,
     UserID,
+    contains_invalid_mxid_characters,
     get_domain_from_id,
     get_localpart_from_id,
     map_username_to_mxid_localpart,
@@ -115,6 +116,24 @@ class RoomAliasTestCase(unittest.HomeserverTestCase):
     def test_validate(self) -> None:
         id_string = "#test:domain,test"
         self.assertFalse(RoomAlias.is_valid(id_string))
+
+
+class ContainsInvalidMxidCharactersTestCase(unittest.TestCase):
+    def test_empty_string(self) -> None:
+        self.assertFalse(contains_invalid_mxid_characters(""))
+
+    def test_valid_characters(self) -> None:
+        self.assertFalse(contains_invalid_mxid_characters("user"))
+        self.assertFalse(contains_invalid_mxid_characters("user123"))
+        self.assertFalse(contains_invalid_mxid_characters("a.b-c=d_e+f/g"))
+        self.assertFalse(contains_invalid_mxid_characters("1234"))
+
+    def test_invalid_characters(self) -> None:
+        self.assertTrue(contains_invalid_mxid_characters("USER"))
+        self.assertTrue(contains_invalid_mxid_characters("user@host"))
+        self.assertTrue(contains_invalid_mxid_characters("user space"))
+        self.assertTrue(contains_invalid_mxid_characters("user!"))
+        self.assertTrue(contains_invalid_mxid_characters("user?"))
 
 
 class MapUsernameTestCase(unittest.TestCase):

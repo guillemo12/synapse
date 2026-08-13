@@ -292,11 +292,15 @@ class MediaStorage:
             path = self._file_info_to_path(file_info)
             if self.local_provider:
                 local_path = os.path.join(self.local_media_directory, path)  # type: ignore[arg-type]
-                if os.path.isfile(local_path):
+                is_file = await defer_to_thread(
+                    self.reactor, os.path.isfile, local_path
+                )
+                if is_file:
                     # Import here to avoid circular import
                     from .media_storage import FileResponder
 
-                    return FileResponder(self.hs, open(local_path, "rb"))
+                    f = await defer_to_thread(self.reactor, open, local_path, "rb")
+                    return FileResponder(self.hs, f)
             return None
 
         paths = [self._file_info_to_path(file_info)]

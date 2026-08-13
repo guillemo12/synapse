@@ -39,7 +39,11 @@ from twisted.internet.error import DNSLookupError
 
 from synapse.api.errors import Codes, SynapseError
 from synapse.http.client import SimpleHttpClient
-from synapse.logging.context import make_deferred_yieldable, run_in_background
+from synapse.logging.context import (
+    defer_to_thread,
+    make_deferred_yieldable,
+    run_in_background,
+)
 from synapse.media._base import FileInfo, get_filename_from_headers
 from synapse.media.media_storage import MediaStorage, SHA256TransparentIOWriter
 from synapse.media.oembed import OEmbedProvider
@@ -56,6 +60,12 @@ if TYPE_CHECKING:
     from synapse.server import HomeServer
 
 logger = logging.getLogger(__name__)
+
+
+def _read_file_sync(filename: str) -> bytes:
+    with open(filename, "rb") as file:
+        return file.read()
+
 
 OG_TAG_NAME_MAXLEN = 50
 OG_TAG_VALUE_MAXLEN = 1000
@@ -296,8 +306,9 @@ class UrlPreviewer:
         elif _is_html(media_info.media_type):
             # TODO: somehow stop a big HTML tree from exploding synapse's RAM
 
-            with open(media_info.filename, "rb") as file:
-                body = file.read()
+            body = await defer_to_thread(
+                self.hs.get_reactor(), _read_file_sync, media_info.filename
+            )
 
             tree = decode_body(body, media_info.uri, media_info.media_type)
             if tree is not None:
@@ -734,8 +745,9 @@ class UrlPreviewer:
         if not _is_json(media_info.media_type):
             return {}, None, expiration_ms
 
-        with open(media_info.filename, "rb") as file:
-            body = file.read()
+        body = await defer_to_thread(
+            self.hs.get_reactor(), _read_file_sync, media_info.filename
+        )
 
         oembed_response = self._oembed.parse_oembed_response(url, body)
         open_graph_result = oembed_response.open_graph_result

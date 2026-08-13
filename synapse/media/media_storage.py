@@ -378,15 +378,18 @@ class MediaStorage:
                     yield legacy_local_path
                     return
 
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            await defer_to_thread(
+                self.reactor, os.makedirs, os.path.dirname(local_path), exist_ok=True
+            )
 
             for provider in self.storage_providers:
                 remote_res: Any = await provider.fetch(path, file_info)
                 if remote_res:
                     with remote_res:
-                        consumer = BackgroundFileConsumer(
-                            open(local_path, "wb"), self.reactor
+                        file_obj = await defer_to_thread(
+                            self.reactor, open, local_path, "wb"
                         )
+                        consumer = BackgroundFileConsumer(file_obj, self.reactor)
                         await remote_res.write_to_consumer(consumer)
                         await consumer.wait()
                     yield local_path
@@ -400,14 +403,21 @@ class MediaStorage:
                 if res:
                     temp_path = None
                     try:
-                        with tempfile.NamedTemporaryFile(
-                            delete=False, suffix=os.path.splitext(path)[1]
-                        ) as tmp:
-                            temp_path = tmp.name
+
+                        def _create_tempfile() -> str:
+                            with tempfile.NamedTemporaryFile(
+                                delete=False, suffix=os.path.splitext(path)[1]
+                            ) as tmp:
+                                return tmp.name
+
+                        temp_path = await defer_to_thread(
+                            self.reactor, _create_tempfile
+                        )
                         with res:
-                            consumer = BackgroundFileConsumer(
-                                open(temp_path, "wb"), self.reactor
+                            file_obj = await defer_to_thread(
+                                self.reactor, open, temp_path, "wb"
                             )
+                            consumer = BackgroundFileConsumer(file_obj, self.reactor)
                             await res.write_to_consumer(consumer)
                             await consumer.wait()
                         yield temp_path

@@ -384,9 +384,8 @@ class MediaStorage:
                 remote_res: Any = await provider.fetch(path, file_info)
                 if remote_res:
                     with remote_res:
-                        consumer = BackgroundFileConsumer(
-                            open(local_path, "wb"), self.reactor
-                        )
+                        f = await defer_to_thread(self.reactor, open, local_path, "wb")
+                        consumer = BackgroundFileConsumer(f, self.reactor)
                         await remote_res.write_to_consumer(consumer)
                         await consumer.wait()
                     yield local_path
@@ -405,9 +404,10 @@ class MediaStorage:
                         ) as tmp:
                             temp_path = tmp.name
                         with res:
-                            consumer = BackgroundFileConsumer(
-                                open(temp_path, "wb"), self.reactor
+                            f = await defer_to_thread(
+                                self.reactor, open, temp_path, "wb"
                             )
+                            consumer = BackgroundFileConsumer(f, self.reactor)
                             await res.write_to_consumer(consumer)
                             await consumer.wait()
                         yield temp_path

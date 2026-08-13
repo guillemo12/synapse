@@ -1,0 +1,1 @@
+⚡ Improve performance by removing blocking `open()` in async media fetching.

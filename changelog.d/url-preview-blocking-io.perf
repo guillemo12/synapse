@@ -1,0 +1,1 @@
+Optimized `url_previewer.py` to prevent event-loop blocking by reading files asynchronously.

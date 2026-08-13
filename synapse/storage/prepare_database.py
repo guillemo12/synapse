@@ -488,6 +488,8 @@ def _upgrade_existing_database(
         # We sort to ensure that we apply the delta files in a consistent
         # order (to avoid bugs caused by inconsistent directory listing order)
         directory_entries.sort()
+
+        applied_deltas_to_insert = []
         for entry in directory_entries:
             file_name = entry.file_name
             relative_path = os.path.join(str(v), file_name)
@@ -559,9 +561,12 @@ def _upgrade_existing_database(
                 continue
 
             # Mark as done.
-            cur.execute(
+            applied_deltas_to_insert.append((v, relative_path))
+
+        if applied_deltas_to_insert:
+            cur.executemany(
                 "INSERT INTO applied_schema_deltas (version, file) VALUES (?,?)",
-                (v, relative_path),
+                applied_deltas_to_insert,
             )
 
     logger.info("Schema now up to date")

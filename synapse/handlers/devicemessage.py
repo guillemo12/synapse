@@ -45,7 +45,7 @@ from synapse.logging.opentracing import (
 from synapse.types import JsonDict, Requester, StreamKeyType, UserID, get_domain_from_id
 from synapse.util import split_dict_to_fit_to_size
 from synapse.util.json import json_encoder
-from synapse.util.stringutils import random_string_insecure_fast
+from synapse.util.stringutils import random_string
 
 if TYPE_CHECKING:
     from synapse.server import HomeServer
@@ -538,7 +538,7 @@ def create_new_to_device_edu_content(
     """
     # The EDU contains a "message_id" property which is used for
     # idempotence. Make up a random one.
-    message_id = random_string_insecure_fast(16)
+    message_id = random_string(16)
     content = {
         "sender": sender_user_id,
         "type": message_type,

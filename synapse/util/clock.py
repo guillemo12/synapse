@@ -35,7 +35,7 @@ from synapse.logging.loggers import ExplicitlyConfiguredLogger
 from synapse.types import ISynapseThreadlessReactor
 from synapse.util import log_failure
 from synapse.util.duration import Duration
-from synapse.util.stringutils import random_string_insecure_fast
+from synapse.util.stringutils import random_string
 
 P = ParamSpec("P")
 
@@ -213,7 +213,7 @@ class Clock:
         **kwargs: P.kwargs,
     ) -> LoopingCall:
         """Common functionality for `looping_call` and `looping_call_now`"""
-        instance_id = random_string_insecure_fast(5)
+        instance_id = random_string(5)
 
         if self._is_shutdown:
             raise Exception("Cannot start looping call. Clock has been shutdown")
@@ -444,7 +444,7 @@ class Clock:
             *args: Postional arguments to pass to function.
             **kwargs: Key arguments to pass to function.
         """
-        instance_id = random_string_insecure_fast(5)
+        instance_id = random_string(5)
 
         def wrapped_callback(*args: Any, **kwargs: Any) -> None:
             clock_debug_logger.debug(
@@ -522,7 +522,7 @@ class Clock:
         Returns:
             an ID that can be used to remove this call with `reactor.removeSystemEventTrigger`.
         """
-        instance_id = random_string_insecure_fast(5)
+        instance_id = random_string(5)
 
         def wrapped_callback(*args: Any, **kwargs: Any) -> None:
             clock_debug_logger.debug(

@@ -20,7 +20,6 @@
 #
 #
 import itertools
-import random
 import re
 import secrets
 import string
@@ -59,8 +58,7 @@ def random_string(length: int) -> str:
     Drawn from the characters: `a-z` and `A-Z`
 
     Because this is generated from cryptographic sources, it takes a notable amount of
-    effort to generate (computationally expensive). If you don't need cryptographic
-    security, consider using `random_string_insecure_fast` for better performance.
+    effort to generate (computationally expensive).
     """
     return "".join(secrets.choice(string.ascii_letters) for _ in range(length))
 
@@ -71,18 +69,6 @@ def random_string_with_symbols(length: int) -> str:
     Drawn from the characters: `a-z`, `A-Z`, `0-9`, and `.,;:^&*-_+=#~@`
     """
     return "".join(secrets.choice(_string_with_symbols) for _ in range(length))
-
-
-def random_string_insecure_fast(length: int) -> str:
-    """
-    Generate a string of random letters (insecure, fast). This is a more performant but
-    insecure version of `random_string`.
-
-    WARNING: Not for security or cryptographic uses. Use `random_string` instead.
-
-    Drawn from the characters: `a-z` and `A-Z`
-    """
-    return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
 
 def is_ascii(s: bytes) -> bool:

@@ -230,17 +230,30 @@ class MediaStorage:
 
         if self.local_provider:
             media_filepath = os.path.join(self.local_media_directory, path)  # type: ignore[arg-type]
-            os.makedirs(os.path.dirname(media_filepath), exist_ok=True)
+
+            def _open_local() -> BinaryIO:
+                os.makedirs(os.path.dirname(media_filepath), exist_ok=True)
+                return open(media_filepath, "wb")
 
             with start_active_span("writing to main media repo"):
-                with open(media_filepath, "wb") as f:
-                    yield f, media_filepath
+                f_local = await defer_to_thread(self.reactor, _open_local)
+                try:
+                    yield f_local, media_filepath
+                finally:
+                    await defer_to_thread(self.reactor, f_local.close)
         else:
             # No local provider, write to temp file
             is_temp_file = True
-            with tempfile.NamedTemporaryFile(delete=False) as f:
-                media_filepath = f.name
-                yield cast(BinaryIO, f), media_filepath
+
+            def _open_temp() -> BinaryIO:
+                return cast(BinaryIO, tempfile.NamedTemporaryFile(delete=False))
+
+            f_temp = await defer_to_thread(self.reactor, _open_temp)
+            try:
+                media_filepath = f_temp.name  # type: ignore[attr-defined]
+                yield f_temp, media_filepath
+            finally:
+                await defer_to_thread(self.reactor, f_temp.close)
 
         # Spam check and store to other providers (runs for both local and temp file cases)
         try:

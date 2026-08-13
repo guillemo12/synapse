@@ -653,24 +653,48 @@ class UserRegisterServlet(RestServlet):
 
         got_mac = body["mac"]
 
-        want_mac_builder = hmac.new(
+        mac_bytes = b"".join(
+            [
+                nonce.encode("utf8"),
+                b"\x00",
+                username,
+                b"\x00",
+                password_bytes,
+                b"\x00",
+                b"admin" if admin else b"notadmin",
+                b"\x00" + user_type.encode("utf8") if user_type else b"",
+            ]
+        )
+
+        want_mac_builder_sha256 = hmac.new(
+            key=self.hs.config.registration.registration_shared_secret.encode(),
+            digestmod=hashlib.sha256,
+        )
+        want_mac_builder_sha256.update(mac_bytes)
+        want_mac_sha256 = want_mac_builder_sha256.hexdigest()
+
+        want_mac_builder_sha1 = hmac.new(
             key=self.hs.config.registration.registration_shared_secret.encode(),
             digestmod=hashlib.sha1,
         )
-        want_mac_builder.update(nonce.encode("utf8"))
-        want_mac_builder.update(b"\x00")
-        want_mac_builder.update(username)
-        want_mac_builder.update(b"\x00")
-        want_mac_builder.update(password_bytes)
-        want_mac_builder.update(b"\x00")
-        want_mac_builder.update(b"admin" if admin else b"notadmin")
-        if user_type:
-            want_mac_builder.update(b"\x00")
-            want_mac_builder.update(user_type.encode("utf8"))
+        want_mac_builder_sha1.update(mac_bytes)
+        want_mac_sha1 = want_mac_builder_sha1.hexdigest()
 
-        want_mac = want_mac_builder.hexdigest()
+        if hmac.compare_digest(
+            want_mac_sha256.encode("ascii"), got_mac.encode("ascii")
+        ):
+            want_mac = want_mac_sha256
+            mac_matched = True
+        elif hmac.compare_digest(
+            want_mac_sha1.encode("ascii"), got_mac.encode("ascii")
+        ):
+            want_mac = want_mac_sha1
+            mac_matched = True
+        else:
+            want_mac = want_mac_sha256  # For error logging
+            mac_matched = False
 
-        if not hmac.compare_digest(want_mac.encode("ascii"), got_mac.encode("ascii")):
+        if not mac_matched:
             # If the sensitive debug logger is enabled, log the full details.
             #
             # For reference, the `user_registration_sensitive_debug_logger.debug(...)`

@@ -1,0 +1,1 @@
+Upgrade HMAC hash algorithm from SHA-1 to SHA-256 for matrix user registration script while maintaining backward compatibility.

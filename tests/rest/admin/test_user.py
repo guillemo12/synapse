@@ -155,7 +155,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(b"notthenonce\x00bob\x00abc123\x00admin")
         want_mac_str = want_mac.hexdigest()
 
@@ -171,6 +171,31 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         self.assertEqual(403, channel.code, msg=channel.json_body)
         self.assertEqual("HMAC incorrect", channel.json_body["error"])
 
+    def test_register_correct_nonce_sha1(self) -> None:
+        """
+        When the correct nonce is provided and the legacy SHA-1 HMAC is used,
+        the user is registered to ensure backward compatibility.
+        """
+        channel = self.make_request("GET", self.url)
+        nonce = channel.json_body["nonce"]
+
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac.update(
+            nonce.encode("ascii") + b"\x00bob_sha1\x00abc123\x00admin\x00support"
+        )
+        want_mac_str = want_mac.hexdigest()
+
+        body = {
+            "nonce": nonce,
+            "username": "bob_sha1",
+            "password": "abc123",
+            "admin": True,
+            "user_type": "support",
+            "mac": want_mac_str,
+        }
+        channel = self.make_request("POST", self.url, body)
+        self.assertEqual(200, channel.code, msg=channel.json_body)
+
     def test_register_correct_nonce(self) -> None:
         """
         When the correct nonce is provided, and the right key is provided, the
@@ -179,7 +204,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(
             nonce.encode("ascii") + b"\x00bob\x00abc123\x00admin\x00support"
         )
@@ -205,7 +230,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(nonce.encode("ascii") + b"\x00bob\x00abc123\x00admin")
         want_mac_str = want_mac.hexdigest()
 
@@ -346,7 +371,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
             channel = self.make_request("GET", self.url)
             nonce = channel.json_body["nonce"]
 
-            want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+            want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
             want_mac.update(
                 nonce.encode("ascii")
                 + b"\x00alice\x00abc123\x00notadmin\x00"
@@ -391,7 +416,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(nonce.encode("ascii") + b"\x00bob1\x00abc123\x00notadmin")
         want_mac_str = want_mac.hexdigest()
 
@@ -415,7 +440,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(nonce.encode("ascii") + b"\x00bob2\x00abc123\x00notadmin")
         want_mac_str = want_mac.hexdigest()
 
@@ -439,7 +464,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(nonce.encode("ascii") + b"\x00bob3\x00abc123\x00notadmin")
         want_mac_str = want_mac.hexdigest()
 
@@ -462,7 +487,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(nonce.encode("ascii") + b"\x00bob4\x00abc123\x00notadmin")
         want_mac_str = want_mac.hexdigest()
 
@@ -507,7 +532,7 @@ class UserRegisterTestCase(unittest.HomeserverTestCase):
         channel = self.make_request("GET", self.url)
         nonce = channel.json_body["nonce"]
 
-        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha1)
+        want_mac = hmac.new(key=b"shared", digestmod=hashlib.sha256)
         want_mac.update(
             nonce.encode("ascii") + b"\x00bob\x00abc123\x00admin\x00support"
         )

@@ -1,0 +1,1 @@
+Optimize URL preview file I/O to avoid blocking the event loop.

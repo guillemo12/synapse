@@ -1,0 +1,1 @@
+Replaced random.choices with secrets.choice for generating registration tokens to improve security.

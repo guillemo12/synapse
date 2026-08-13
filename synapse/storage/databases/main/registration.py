@@ -22,6 +22,7 @@
 import logging
 import random
 import re
+import secrets
 from typing import TYPE_CHECKING, Any, cast
 
 import attr
@@ -1845,7 +1846,7 @@ class RegistrationWorkerStore(StatsStore, CacheInvalidationWorkerStore):
         # length before failing.
         for _i in range(3):
             # Generate token
-            token = "".join(random.choices(chars, k=length))
+            token = "".join(secrets.choice(chars) for _ in range(length))
 
             # Check if the token already exists
             existing_token = await self.db_pool.simple_select_one_onecol(

@@ -39,7 +39,11 @@ from twisted.internet.error import DNSLookupError
 
 from synapse.api.errors import Codes, SynapseError
 from synapse.http.client import SimpleHttpClient
-from synapse.logging.context import make_deferred_yieldable, run_in_background
+from synapse.logging.context import (
+    defer_to_thread,
+    make_deferred_yieldable,
+    run_in_background,
+)
 from synapse.media._base import FileInfo, get_filename_from_headers
 from synapse.media.media_storage import MediaStorage, SHA256TransparentIOWriter
 from synapse.media.oembed import OEmbedProvider
@@ -537,11 +541,24 @@ class UrlPreviewer:
                 milliseconds the result is valid for, the etag header.
         """
 
-        try:
-            logger.debug("Trying to parse data url '%s'", url)
+        def _download_data_url_synchronously(url: str, output_stream: BinaryIO) -> str:
             with urlopen(url) as url_info:
                 # TODO Can this be more efficient.
                 output_stream.write(url_info.read())
+                # urlopen shoves the media-type from the data URL into the content type
+                # header object.
+                return url_info.headers.get_content_type()
+
+        try:
+            logger.debug("Trying to parse data url '%s'", url)
+            media_type = await make_deferred_yieldable(
+                defer_to_thread(
+                    self.hs.get_reactor(),
+                    _download_data_url_synchronously,
+                    url,
+                    output_stream,
+                )
+            )
         except Exception as e:
             logger.warning("Error parsing data: URL %s: %r", url, e)
 
@@ -558,9 +575,7 @@ class UrlPreviewer:
             uri=url,
             # If it was parsed, consider this a 200 OK.
             response_code=200,
-            # urlopen shoves the media-type from the data URL into the content type
-            # header object.
-            media_type=url_info.headers.get_content_type(),
+            media_type=media_type,
             # Some features are not supported by data: URLs.
             download_name=None,
             expires=ONE_HOUR,

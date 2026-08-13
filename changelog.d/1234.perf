@@ -1,0 +1,1 @@
+Fix blocking `urlopen` I/O call in data URL previewer to be asynchronous.

@@ -350,13 +350,18 @@ class EventFederationWorkerStore(
             rows = txn.execute_values(sql, chains.items())
             results.update(r for (r,) in rows)
         else:
-            # For SQLite we just fall back to doing a noddy for loop.
-            sql = """
-                SELECT event_id FROM event_auth_chains
-                WHERE chain_id = ? AND sequence_number <= ?
-            """
-            for chain_id, max_no in chains.items():
-                txn.execute(sql, (chain_id, max_no))
+            # For SQLite, we batch queries using a CTE and VALUES in chunks
+            # of 100 to avoid exceeding the max parameter limit.
+            for chunk in batch_iter(chains.items(), 100):
+                placeholders = ",".join(["(?, ?)"] * len(chunk))
+                sql = f"""
+                    WITH l(chain_id, max_seq) AS (VALUES {placeholders})
+                    SELECT event_id FROM event_auth_chains AS c
+                    INNER JOIN l
+                    ON c.chain_id = l.chain_id AND c.sequence_number <= l.max_seq
+                """
+                args = [x for item in chunk for x in item]
+                txn.execute(sql, args)
                 results.update(r for (r,) in txn)
 
         return results
@@ -893,21 +898,28 @@ class EventFederationWorkerStore(
                     AND min_seq < sequence_number AND sequence_number <= max_seq
             """
 
-            args = [
+            args_list = [
                 (chain_id, min_no, max_no)
                 for chain_id, (min_no, max_no) in chains.items()
             ]
 
-            rows = txn.execute_values(sql, args)
+            rows = txn.execute_values(sql, args_list)
             result.update(r for (r,) in rows)
         else:
-            # For SQLite we just fall back to doing a noddy for loop.
-            sql = """
-                SELECT event_id FROM event_auth_chains
-                WHERE chain_id = ? AND ? < sequence_number AND sequence_number <= ?
-            """
-            for chain_id, (min_no, max_no) in chains.items():
-                txn.execute(sql, (chain_id, min_no, max_no))
+            # For SQLite, we batch queries using a CTE and VALUES in chunks
+            # of 100 to avoid exceeding the max parameter limit.
+            for chunk in batch_iter(chains.items(), 100):
+                placeholders = ",".join(["(?, ?, ?)"] * len(chunk))
+                sql = f"""
+                    WITH l(chain_id, min_seq, max_seq) AS (VALUES {placeholders})
+                    SELECT event_id FROM event_auth_chains AS c
+                    INNER JOIN l
+                    ON c.chain_id = l.chain_id AND l.min_seq < c.sequence_number AND c.sequence_number <= l.max_seq
+                """
+                args = []
+                for c, (min_no, max_no) in chunk:
+                    args.extend([c, min_no, max_no])
+                txn.execute(sql, args)
                 result.update(r for (r,) in txn)
         return result
 

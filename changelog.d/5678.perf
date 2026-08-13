@@ -1,0 +1,1 @@
+Optimize N+1 query issue in SQLite event federation auth chain cover lookups.

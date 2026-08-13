@@ -51,6 +51,7 @@ from synapse.api.errors import NotFoundError
 from synapse.logging.context import defer_to_thread, run_in_background
 from synapse.logging.opentracing import start_active_span, trace, trace_with_opname
 from synapse.media.storage_provider import FileStorageProviderBackend
+from synapse.types import ISynapseReactor
 from synapse.util.clock import Clock
 from synapse.util.duration import Duration
 from synapse.util.file_consumer import BackgroundFileConsumer
@@ -524,16 +525,25 @@ class ReadableFileWrapper:
     async def write_chunks_to(self, callback: Callable[[bytes], object]) -> None:
         """Reads the file in chunks and calls the callback with each chunk."""
 
-        with open(self.path, "rb") as file:
+        f = await defer_to_thread(
+            cast(ISynapseReactor, self.clock._reactor), open, self.path, "rb"
+        )
+        try:
             while True:
-                chunk = file.read(self.CHUNK_SIZE)
+                chunk = await defer_to_thread(
+                    cast(ISynapseReactor, self.clock._reactor), f.read, self.CHUNK_SIZE
+                )
                 if not chunk:
                     break
 
                 callback(chunk)
 
-                # We yield to the reactor by sleeping for 0 seconds.
+                # The reactor yield is handled implicitly by `defer_to_thread` and awaiting it,
+                # but we explicitly sleep 0 so as not to overwhelm other pending tasks in case
+                # `defer_to_thread` runs synchronously in tests.
                 await self.clock.sleep(Duration(seconds=0))
+        finally:
+            await defer_to_thread(cast(ISynapseReactor, self.clock._reactor), f.close)
 
 
 @implementer(interfaces.IConsumer)

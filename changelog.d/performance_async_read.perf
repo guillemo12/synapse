@@ -1,0 +1,1 @@
+Optimized file reading in the media repository to prevent blocking the main event loop.

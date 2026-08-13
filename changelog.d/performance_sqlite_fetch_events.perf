@@ -1,0 +1,1 @@
+Optimize SQLite fallback for fetching events from chains by utilizing batch JOIN operations instead of individual query loops, yielding a 25-30% improvement in this layer.

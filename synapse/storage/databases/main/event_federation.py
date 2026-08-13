@@ -350,13 +350,19 @@ class EventFederationWorkerStore(
             rows = txn.execute_values(sql, chains.items())
             results.update(r for (r,) in rows)
         else:
-            # For SQLite we just fall back to doing a noddy for loop.
-            sql = """
-                SELECT event_id FROM event_auth_chains
-                WHERE chain_id = ? AND sequence_number <= ?
-            """
-            for chain_id, max_no in chains.items():
-                txn.execute(sql, (chain_id, max_no))
+            for chunk in batch_iter(chains.items(), 100):
+                sqlite_args: list[int] = []
+                for chain_id, max_no in chunk:
+                    sqlite_args.extend([chain_id, max_no])
+
+                values_sql = ", ".join(["(?, ?)"] * len(chunk))
+                sql = f"""
+                    SELECT event_id
+                    FROM event_auth_chains AS c
+                    JOIN (VALUES {values_sql}) AS l
+                    ON c.chain_id = l.column1 AND c.sequence_number <= l.column2
+                """
+                txn.execute(sql, sqlite_args)
                 results.update(r for (r,) in txn)
 
         return results
@@ -901,13 +907,19 @@ class EventFederationWorkerStore(
             rows = txn.execute_values(sql, args)
             result.update(r for (r,) in rows)
         else:
-            # For SQLite we just fall back to doing a noddy for loop.
-            sql = """
-                SELECT event_id FROM event_auth_chains
-                WHERE chain_id = ? AND ? < sequence_number AND sequence_number <= ?
-            """
-            for chain_id, (min_no, max_no) in chains.items():
-                txn.execute(sql, (chain_id, min_no, max_no))
+            for chunk in batch_iter(chains.items(), 100):
+                sqlite_args: list[int] = []
+                for chain_id, (min_no, max_no) in chunk:
+                    sqlite_args.extend([chain_id, min_no, max_no])
+
+                values_sql = ", ".join(["(?, ?, ?)"] * len(chunk))
+                sql = f"""
+                    SELECT event_id
+                    FROM event_auth_chains AS c
+                    JOIN (VALUES {values_sql}) AS l
+                    ON c.chain_id = l.column1 AND l.column2 < c.sequence_number AND c.sequence_number <= l.column3
+                """
+                txn.execute(sql, sqlite_args)
                 result.update(r for (r,) in txn)
         return result
 

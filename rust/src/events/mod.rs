@@ -125,6 +125,7 @@ pub fn register_module(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
         serialize::format_event_for_client_v2_without_room_id,
         m
     )?)?;
+    child_module.add_function(wrap_pyfunction!(serialize::parse_stripped_state_event, m)?)?;
 
     m.add_submodule(&child_module)?;
 

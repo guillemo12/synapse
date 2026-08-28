@@ -30,11 +30,12 @@
 
 use std::collections::HashMap;
 
+use once_cell::sync::OnceCell;
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     pyclass, pyfunction, pymethods,
-    types::{PyAnyMethods, PyDict, PyDictMethods},
-    Bound, PyAny, PyResult, Python,
+    types::{PyAnyMethods, PyDict, PyDictMethods, PyString},
+    Bound, Py, PyAny, PyResult, Python,
 };
 use pythonize::pythonize;
 use serde_json::{Map, Number, Value};
@@ -645,6 +646,50 @@ pub fn format_event_for_client_v2_without_room_id(
         d.del_item(ROOM_ID)?;
     }
     Ok(d)
+}
+
+/// A reference to the `synapse.events.StrippedStateEvent` class.
+static STRIPPED_STATE_EVENT_CLASS: OnceCell<Py<PyAny>> = OnceCell::new();
+
+fn stripped_state_event_class(py: Python<'_>) -> PyResult<&Bound<'_, PyAny>> {
+    Ok(STRIPPED_STATE_EVENT_CLASS
+        .get_or_try_init(|| -> PyResult<_> {
+            Ok(py.import("synapse.events")?.getattr("StrippedStateEvent")?.unbind())
+        })?
+        .bind(py))
+}
+
+/// Given a raw value from an event's `unsigned` field, attempt to parse it into a
+/// `StrippedStateEvent`.
+#[pyfunction]
+pub fn parse_stripped_state_event(
+    py: Python<'_>,
+    raw: &Bound<'_, PyAny>,
+) -> PyResult<Option<Py<PyAny>>> {
+    if let Ok(dict) = raw.cast::<PyDict>() {
+        let event_type = dict.get_item("type")?;
+        let state_key = dict.get_item("state_key")?;
+        let sender = dict.get_item("sender")?;
+        let content = dict.get_item("content")?;
+
+        if let (Some(t), Some(sk), Some(s), Some(c)) = (event_type, state_key, sender, content) {
+            if t.is_instance_of::<PyString>()
+                && sk.is_instance_of::<PyString>()
+                && s.is_instance_of::<PyString>()
+                && c.is_instance_of::<PyDict>()
+            {
+                let cls = stripped_state_event_class(py)?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item("type", t)?;
+                kwargs.set_item("state_key", sk)?;
+                kwargs.set_item("sender", s)?;
+                kwargs.set_item("content", c)?;
+                let instance = cls.call((), Some(&kwargs))?;
+                return Ok(Some(instance.unbind()));
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// Return a mutable reference to `map["unsigned"]`, creating it as an empty
